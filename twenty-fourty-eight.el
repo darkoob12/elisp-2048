@@ -36,16 +36,17 @@
 
    DIR: one of the four directions.
    STATE: the game state matrix."
-  (let (i matrix)
+  (let (i k matrix)
     (setq matrix (if state state 2048-state))
     (dotimes (r 2048-size)
       (setq i (if (eq dir :right) (1- 2048-size) 0))
       (dotimes (j 2048-size)
-        (setq j (if (eq dir :right) (- (1- 2048-size) j) j))
-        (unless (= (elt (elt matrix r) j) 0)
-          (aset (elt matrix r) i (elt (elt matrix r) j))
-          (aset (elt matrix r) j 0)
-          (setq i (if (eq dir :right) (1- i) (1+ i))))))))
+        (setq k (if (eq dir :right) (- (1- 2048-size) j) j))
+        (unless (= (elt (elt matrix r) k) 0)
+          (unless (= i k)
+            (aset (elt matrix r) i (elt (elt matrix r) k))
+            (aset (elt matrix r) k 0)
+          (setq i (if (eq dir :right) (1- i) (1+ i)))))))))
 
 (defun 2048-move (dir)
   "Move the numbers.
