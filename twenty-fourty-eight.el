@@ -31,22 +31,41 @@
           margin (/ (- 2048-cell-size (length str-val)) 2))
     (concat (make-string margin ?\s) str-val (make-string (- margin 1) ?\s))))
 
-(defun 2048-remove-empty-cells-row (dir &optional state)
+(defun 2048-move-empty-cells-row (dir)
   "Remove all the empty cells in the matrix along the direction of all rows.
 
-   DIR: one of the four directions.
-   STATE: the game state matrix."
-  (let (i k matrix)
-    (setq matrix (if state state 2048-state))
+   DIR: one of the four directions."
+  (let (i k)
     (dotimes (r 2048-size)
       (setq i (if (eq dir :right) (1- 2048-size) 0))
       (dotimes (j 2048-size)
         (setq k (if (eq dir :right) (- (1- 2048-size) j) j))
-        (unless (= (elt (elt matrix r) k) 0)
+        (unless (= (elt (elt 2048-state r) k) 0)
           (unless (= i k)
-            (aset (elt matrix r) i (elt (elt matrix r) k))
-            (aset (elt matrix r) k 0)
+            (aset (elt 2048-state r) i (elt (elt 2048-state r) k))
+            (aset (elt 2048-state r) k 0)
           (setq i (if (eq dir :right) (1- i) (1+ i)))))))))
+
+
+(defun 2048-move-empty-cells-col (dir)
+  "Remove all empty cells in the matrix alogn the direction in all columns.
+
+   DIR: either :up or :down."
+  (let (i r)
+    (dotimes (c 2048-size)
+      (setq i (if (eq dir :down) (1- 2048-size) 0))
+      (dotimes (k 2048-size)
+        (setq r (if (eq dir :down) (- (1- 2048-size) k) k))
+        (unless (= (elt (elt 2048-state r) c) 0)
+          (unless (= i r)
+            (aset (elt 2048-state i) c (elt (elt 2048-state r) c))
+            (aset (elt 2048-state r) c 0))
+          (setq i (if (eq dir :down) (1- i) (1+ i))))))))
+
+(defun 2048-merge-identicals (dir)
+  "Merge identical cells at the end of each direction.
+
+  DIR: one of the four directions.")
 
 (defun 2048-move (dir)
   "Move the numbers.
