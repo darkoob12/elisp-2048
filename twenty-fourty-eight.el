@@ -44,7 +44,7 @@
           (unless (= i k)
             (aset (elt 2048-state r) i (elt (elt 2048-state r) k))
             (aset (elt 2048-state r) k 0)
-          (setq i (if (eq dir :right) (1- i) (1+ i)))))))))
+            (setq i (if (eq dir :right) (1- i) (1+ i)))))))))
 
 
 (defun 2048-move-empty-cells-col (dir)
@@ -62,10 +62,32 @@
             (aset (elt 2048-state r) c 0))
           (setq i (if (eq dir :down) (1- i) (1+ i))))))))
 
-(defun 2048-merge-identicals (dir)
+(defun 2048-merge-identicals-row (dir)
   "Merge identical cells at the end of each direction.
 
-  DIR: one of the four directions.")
+  DIR: one of the four directions."
+  (let (k)
+    (dotimes (r 2048-size)
+      (dotimes (j (1- 2048-size))
+        (setq k (if (eq dir :right) (- (1- 2048-size) j) j))
+        (when (= (elt (elt 2048-state r) k) (elt (elt 2048-state r) (if (eq dir :right) (1- k) (1+ k))))
+          (aset (elt 2048-state r) k (* (elt (elt 2048-state r) k) 2))
+          (aset (elt 2048-state r) (if (eq dir :right) (1- k) (1+ k)) 0))))))
+
+(defun 2048-merge-identicals-col (dir)
+  "Merge identical cells at the end of each direction.
+
+  DIR: one of the four directions."
+  (let (k)
+    (dotimes (c 2048-size)
+      (dotimes (j (1- 2048-size))
+        (setq k (if (eq dir :right) (- (1- 2048-size) j) j))
+        (when (= (elt (elt 2048-state k) c) (elt (elt 2048-state (if (eq dir :right) (1- k) (1+ k))) c))
+          (aset (elt 2048-state k) c (* (elt (elt 2048-state k) c) 2))
+          (aset (elt 2048-state (if (eq dir :right) (1- k) (1+ k))) c 0))))))
+
+
+
 
 (defun 2048-move (dir)
   "Move the numbers.
