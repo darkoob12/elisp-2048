@@ -90,10 +90,10 @@
   (let (k)
     (dotimes (c 2048-size)
       (dotimes (j (1- 2048-size))
-        (setq k (if (eq dir :right) (- (1- 2048-size) j) j))
-        (when (= (elt (elt 2048-state k) c) (elt (elt 2048-state (if (eq dir :right) (1- k) (1+ k))) c))
+        (setq k (if (eq dir :down) (- (1- 2048-size) j) j))
+        (when (= (elt (elt 2048-state k) c) (elt (elt 2048-state (if (eq dir :down) (1- k) (1+ k))) c))
           (aset (elt 2048-state k) c (* (elt (elt 2048-state k) c) 2))
-          (aset (elt 2048-state (if (eq dir :right) (1- k) (1+ k))) c 0)
+          (aset (elt 2048-state (if (eq dir :down) (1- k) (1+ k))) c 0)
           (setq 2048-score (elt (elt 2048-state k) c)))))))
 
 (defun 2048-move-empty-cells (dir)
@@ -109,7 +109,7 @@
 
   DIR: one of the four directions."
   (cond
-   ((or (eq dir :left) (eq dir :right)) (2048-merge-identicals-row (dir)))
+   ((or (eq dir :left) (eq dir :right)) (2048-merge-identicals-row dir))
    ((or (eq dir :up) (eq dir :down)) (2048-merge-identicals-col dir))))
 
 (defun 2048-add-new-cell ()
