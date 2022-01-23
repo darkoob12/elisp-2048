@@ -9,6 +9,7 @@
 (defvar-local 2048-game-over nil)
 (defvar-local 2048-score 0)
 
+;; repeats a single vector for all rows
 ;; (make-vector 4 (make-vector 4 0))
 
 (defun 2048-cell (i j)
@@ -43,7 +44,7 @@
   "Remove all the empty cells in the matrix along the direction of all rows.
 
    DIR: one of the four directions."
-  (let (i k)
+  (let ((change nil) i k)
     (dotimes (r 2048-size)
       (setq i (if (eq dir :right) (1- 2048-size) 0))
       (dotimes (j 2048-size)
@@ -52,14 +53,16 @@
           (unless (= i k)
             (aset (elt 2048-state r) i (elt (elt 2048-state r) k))
             (aset (elt 2048-state r) k 0)
-            (setq i (if (eq dir :right) (1- i) (1+ i)))))))))
+            (setq change t))
+          (setq i (if (eq dir :right) (1- i) (1+ i))))))
+    change))
 
 
 (defun 2048-move-empty-cells-col (dir)
   "Remove all empty cells in the matrix alogn the direction in all columns.
 
    DIR: either :up or :down."
-  (let (i r)
+  (let ((change nil) i r)
     (dotimes (c 2048-size)
       (setq i (if (eq dir :down) (1- 2048-size) 0))
       (dotimes (k 2048-size)
@@ -67,34 +70,42 @@
         (unless (= (elt (elt 2048-state r) c) 0)
           (unless (= i r)
             (aset (elt 2048-state i) c (elt (elt 2048-state r) c))
-            (aset (elt 2048-state r) c 0))
-          (setq i (if (eq dir :down) (1- i) (1+ i))))))))
+            (aset (elt 2048-state r) c 0)
+            (setq change t))
+          (setq i (if (eq dir :down) (1- i) (1+ i))))))
+    change))
 
 (defun 2048-merge-identicals-row (dir)
   "Merge identical cells at the end of each direction.
 
   DIR: one of the four directions."
-  (let (k)
+  (let ((change nil) k next)
     (dotimes (r 2048-size)
       (dotimes (j (1- 2048-size))
-        (setq k (if (eq dir :right) (- (1- 2048-size) j) j))
-        (when (= (elt (elt 2048-state r) k) (elt (elt 2048-state r) (if (eq dir :right) (1- k) (1+ k))))
+        (setq k (if (eq dir :right) (- (1- 2048-size) j) j)
+              next (if (eq dir :right) (1- k) (1+ k)))
+        (when (and (not (= (2048-cell r k) 0)) (= (2048-cell r k) (2048-cell r next)))
           (aset (elt 2048-state r) k (* (elt (elt 2048-state r) k) 2))
-          (aset (elt 2048-state r) (if (eq dir :right) (1- k) (1+ k)) 0)
-          (setq 2048-score (+ 2048-score (elt (elt 2048-state r) k))))))))
+          (aset (elt 2048-state r) next 0)
+          (setq 2048-score (+ 2048-score (2048-cell r k))
+                change t))))
+    change))
 
 (defun 2048-merge-identicals-col (dir)
   "Merge identical cells at the end of each direction.
 
   DIR: one of the four directions."
-  (let (k)
+  (let ((change nil) k next)
     (dotimes (c 2048-size)
       (dotimes (j (1- 2048-size))
-        (setq k (if (eq dir :down) (- (1- 2048-size) j) j))
-        (when (= (elt (elt 2048-state k) c) (elt (elt 2048-state (if (eq dir :down) (1- k) (1+ k))) c))
-          (aset (elt 2048-state k) c (* (elt (elt 2048-state k) c) 2))
-          (aset (elt 2048-state (if (eq dir :down) (1- k) (1+ k))) c 0)
-          (setq 2048-score (elt (elt 2048-state k) c)))))))
+        (setq k (if (eq dir :down) (- (1- 2048-size) j) j)
+              next (if (eq dir :down) (1- k) (1+ k)))
+        (when (and (not (= (2048-cell k c) 0)) (= (2048-cell k c) (2048-cell next c)))
+          (aset (elt 2048-state k) c (* (2048-cell k c) 2))
+          (aset (elt 2048-state next) c 0)
+          (setq 2048-score (+ 2048-score (2048-cell k c))
+                change t))))
+    change))
 
 (defun 2048-move-empty-cells (dir)
   "Move empty cells to the end of a matrix.
@@ -141,10 +152,13 @@
   "Move the numbers.
 
   DIR: one of the four directions"
-  (2048-move-empty-cells dir)
-  (2048-merge-identicals dir)
-  (2048-add-new-cell)
-  (2048-render))
+  (let ((change nil))
+    (setq change (or (2048-move-empty-cells dir) change)
+          change (or (2048-merge-identicals dir) change)
+          change (or (2048-move-empty-cells dir) change))
+    (when change
+      (2048-add-new-cell))
+    (2048-render)))
 
 (provide 'twenty-fourty-eight)
 ;;; twenty-fourty-eight.el ends here
