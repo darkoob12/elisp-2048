@@ -9,6 +9,16 @@
 (defvar-local 2048-game-over nil)
 (defvar-local 2048-score 0)
 
+(defvar twenty-fourty-eight-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "<left>") '2048-left)
+    (define-key map (kbd "<right>") '2048-right)
+    (define-key map (kbd "<up>") '2048-up)
+    (define-key map (kbd "<down>") '2048-down)
+    (define-key map (kbd "r") '2048-reset-game)
+    map))
+
+
 ;; repeats a single vector for all rows
 ;; (make-vector 4 (make-vector 4 0))
 
@@ -18,10 +28,6 @@
   I: index of the row.
   J: index of the column."
   (elt (elt 2048-state i) j))
-
-(defun 2048-top-line ()
-  "Create string for top line of the table."
-  (make-string (* 2048-size 2048-cell-size) ?_))
 
 (defun 2048-other-line ()
   "Create string for every other horizontal line except for the top line."
@@ -36,7 +42,7 @@
 
   VAL: integer in a cel of the state"
   (let (str-val margin)
-    (setq str-val (number-to-string val)
+    (setq str-val (if (= val 0) " " (number-to-string val))
           margin (/ (- 2048-cell-size (length str-val)) 2))
     (concat (make-string margin ?\s) str-val (make-string (- margin 1) ?\s))))
 
@@ -107,6 +113,51 @@
                 change t))))
     change))
 
+(defun 2048-new-horizontal-dashed-line ()
+  "Insert a dashed line on the next new line."
+  (newline)
+  (beginning-of-line)
+  (dotimes (i (window-width)) (insert "-")))
+
+
+(defun 2048-insert-score ()
+  "Insert the score in the buffer."
+  (newline)
+  (move-to-column 20 t)
+  (insert (format "Score: %d" 2048-score))
+  (dotimes (i 40) (insert " "))
+  (insert "Press 'r' to reset game")
+  (2048-new-horizontal-dashed-line))
+
+
+(defun 2048-insert-header ()
+  "Insert header of the game."
+  (goto-char (window-start))
+  (let ((next-line-add-newlines t))
+    (dotimes (i 2)
+      (forward-line 1)))
+  (beginning-of-line)
+  (move-to-column (floor (/ (- (window-width) 9) 2)) t)
+  (insert "2048 Game")
+  (2048-new-horizontal-dashed-line))
+
+(defun 2048-insert-matrix ()
+  "Insert the game state as a matrix."
+  (newline)
+  (beginning-of-line)
+  (move-to-column 15 t)
+  (insert (make-string (* 2048-size 2048-cell-size) ?_))
+  (newline)
+  (dotimes (i 2048-size)
+    (beginning-of-line)
+    (move-to-column 15 t)
+    (insert (concat "|" (mapconcat '2048-val-to-string (elt 2048-state i) "|") "|"))
+    (newline)
+    (beginning-of-line)
+    (move-to-column 15 t)
+    (insert (2048-other-line))
+    (newline)))
+
 (defun 2048-move-empty-cells (dir)
   "Move empty cells to the end of a matrix.
 
@@ -140,13 +191,43 @@
 
 (defun 2048-render ()
   "Create a text representation of the game matrix."
-  (let (str-acc str-final)
-    (setq str-acc (cons (2048-top-line) str-acc))
-    (dotimes (i 2048-size)
-      (setq str-acc (cons (concat "|" (mapconcat '2048-val-to-string (elt 2048-state i) "|") "|") str-acc)
-            str-acc (cons (2048-other-line) str-acc)))
-    (setq str-final (mapconcat 'identity (reverse str-acc) "\n"))
-    (insert str-final)))
+  (let ((inhibit-read-only t) str-acc str-final)
+    (erase-buffer)
+    (2048-insert-header)
+    (2048-insert-score)
+    (forward-line 2)
+    (2048-insert-matrix)))
+
+(defun 2048-reset-game ()
+  "Reset game state and score also draw a new board."
+  (interactive)
+  (setq 2048-score 0
+        2048-state [[0 0 0 0] [0 0 0 0] [0 0 0 0] [0 0 0 0]]
+        2048-game-over nil)
+  (2048-add-new-cell)
+  (2048-render)
+  )
+
+
+(defun 2048-up ()
+  "Command for moving up."
+  (interactive)
+  (2048-step :up))
+
+(defun 2048-down ()
+  "Command for moving down."
+  (interactive)
+  (2048-step :down))
+
+(defun 2048-left ()
+  "Command for moving left."
+  (interactive)
+  (2048-step :left))
+
+(defun 2048-right ()
+  "Command for moving right."
+  (interactive)
+  (2048-step :right))
 
 
 (defun 2048-step (dir)
@@ -154,12 +235,24 @@
 
   DIR: one of the four directions"
   (let ((change nil))
-    (setq change (or (2048-move-empty-cells dir) change)
-          change (or (2048-merge-identicals dir) change)
-          change (or (2048-move-empty-cells dir) change))
-    (when change
-      (2048-add-new-cell))
-    (2048-render)))
+    (unless 2048-game-over
+      (setq change (or (2048-move-empty-cells dir) change)
+            change (or (2048-merge-identicals dir) change)
+            change (or (2048-move-empty-cells dir) change))
+      (when change
+        (2048-add-new-cell))
+      (2048-render))))
+
+(define-derived-mode twenty-fourty-eight-mode special-mode "2048"
+  ""
+  (let (buf)
+    (setq buf (get-buffer-create "*2048*"))
+    (with-current-buffer buf
+      (read-only-mode)
+      (2048-reset-game))
+    (switch-to-buffer buf))
+  (use-local-map twenty-fourty-eight-mode-map))
+
 
 (provide 'twenty-fourty-eight)
 ;;; twenty-fourty-eight.el ends here
