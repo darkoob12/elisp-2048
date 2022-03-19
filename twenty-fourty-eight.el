@@ -5,9 +5,9 @@
 
 (defconst 2048-size 4)
 (defconst 2048-cell-size 15)
-(defvar-local 2048-state [[0 0 0 0] [0 0 0 0]  [0 0 0 0] [0 0 0 0]])
-(defvar-local 2048-game-over nil)
-(defvar-local 2048-score 0)
+(defvar 2048-state [[0 0 0 0] [0 0 0 0]  [0 0 0 0] [0 0 0 0]])
+(defvar 2048-game-over nil)
+(defvar 2048-score 0)
 
 (defvar twenty-fourty-eight-mode-map
   (let ((map (make-sparse-keymap)))
@@ -195,8 +195,13 @@
     (erase-buffer)
     (2048-insert-header)
     (2048-insert-score)
-    (forward-line 2)
-    (2048-insert-matrix)))
+    (forward-line 3)
+    (2048-insert-matrix)
+    (when 2048-game-over
+      (goto-char (point-max))
+      (newline 2)
+      (move-to-column 30 t)
+      (insert "GAME IS OVER"))))
 
 (defun 2048-reset-game ()
   "Reset game state and score also draw a new board."
@@ -205,8 +210,7 @@
         2048-state [[0 0 0 0] [0 0 0 0] [0 0 0 0] [0 0 0 0]]
         2048-game-over nil)
   (2048-add-new-cell)
-  (2048-render)
-  )
+  (2048-render))
 
 
 (defun 2048-up ()
@@ -235,12 +239,15 @@
 
   DIR: one of the four directions"
   (let ((change nil))
-    (unless 2048-game-over
-      (setq change (or (2048-move-empty-cells dir) change)
-            change (or (2048-merge-identicals dir) change)
-            change (or (2048-move-empty-cells dir) change))
-      (when change
-        (2048-add-new-cell))
+    (if (not 2048-game-over)
+        (progn
+          (setq change (or (2048-move-empty-cells dir) change)
+                change (or (2048-merge-identicals dir) change)
+                change (or (2048-move-empty-cells dir) change))
+          (when change
+            (when (2048-add-new-cell)
+              (2048-render)))
+          (2048-render))
       (2048-render))))
 
 (define-derived-mode twenty-fourty-eight-mode special-mode "2048"
